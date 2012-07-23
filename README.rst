@@ -9,7 +9,7 @@ Python's sockets. The API is loosely based on twisted.
 Why not just use twisted?
 =========================
 
-Python is a bit of a huge unrequired mammoth for small projects that only need
+Twisted is a bit of a huge unrequired mammoth for small projects that only need
 very basic socket handling.
 
 =============
