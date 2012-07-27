@@ -64,7 +64,7 @@ class Application(object):
         self.cobj.append(transport.conn)
         protocol.connected( transport )
     
-    def startConns(self):
+    def start_connections(self):
         """
         Start any connections in the queue.
         """
@@ -72,7 +72,7 @@ class Application(object):
             conn = self.cqueue.pop(0)
             self.open(conn[0], conn[1])
     
-    def cleanConnections(self):
+    def clean_connections(self):
         """
         Get rid of any closed sockets.
         """
@@ -100,13 +100,13 @@ class Application(object):
         """
         Start the application.
         """
-        self.startConns()
-        self.cleanConnections()
-        self.mainLoop()
+        self.start_connections()
+        self.clean_connections()
+        self.main_loop()
     
-    def mainLoop(self):
+    def main_loop(self):
         """
-        Start the application.
+        Main application loop.
         """
         self.running = True
         
@@ -144,7 +144,7 @@ class Application(object):
                 self.cobj.pop(index)
                 self.conn.pop(index)
             
-            self.cleanConnections()
+            self.clean_connections()
         
         # Cleanup!
     
