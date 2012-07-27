@@ -129,10 +129,10 @@ class TCPClient(Transport):
         try:
             data = self.conn.recv(bytes)
         except socket.error as e:
-            if (( e.args[0] == 'timed out' )
-                or ( e.args[0] == errno.EAGAIN )
+            if ((e.args[0] == 'timed out')
+                or (e.args[0] == errno.EAGAIN)
                 or (os.name == 'nt' and e.args[0] == errno.WSAEWOULDBLOCK)
-                or ( e.args[0] == errno.EINTR )):
+                or (e.args[0] == errno.EINTR)):
                     return None
             elif self.conn and e.args[0]:
                 return e
