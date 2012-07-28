@@ -6,6 +6,18 @@ from sloppy.transport import TCPClient
 from sloppy.protocol.ws.flow import WebSocketServerFactory
 
 
+class STATE:
+    """
+    Basically an enum determining the state of a connection.
+    """
+    
+    CONNECTING = 0
+    OPEN = 1
+    TIME_WAIT = 2
+    CLOSING = 3
+    CLOSED = 4
+
+
 class WebSocketServer(TCPServer):
     """
     Transport for WebSocket servers.
@@ -48,4 +60,16 @@ class WebSocketClient(TCPClient):
     This transport wraps a socket connection to a remote host. Messages sent
     are wrapped appropriately according to the WebSocket standard 
     """
+    
+    def __init__(self, addr, port, factory=None, *args, **kwargs):
+        """
+        Create a transport.
+        """
+        self.addr = addr
+        self.port = port
+        self.state = STATE.CONNECTING
+        self.factory = factory or ConnectionFactory()
+        self.dcreason = None
+        self.init(addr, port, factory, *args, **kwargs)
+
 
