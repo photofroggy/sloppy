@@ -1,6 +1,8 @@
 ''' sloppy.protocol.transport - photofroggy
     WebSocket transports.
 '''
+import base64
+import hashlib
 from sloppy.transport import TCPServer
 from sloppy.transport import TCPClient
 from sloppy.protocol.ws.flow import WebSocketServerFactory
@@ -16,6 +18,13 @@ class STATE:
     TIME_WAIT = 2
     CLOSING = 3
     CLOSED = 4
+
+
+SERVER_HANDSHAKE = 'HTTP/1.1 101 WebSocket Accept\r\n{0}\r\n\0'
+
+CLIENT_HANDSHAKE = 'GET {0} HTTP/1.1\r\n'
+
+PADDING = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
 
 
 class WebSocketServer(TCPServer):
@@ -71,5 +80,40 @@ class WebSocketClient(TCPClient):
         self.factory = factory or ConnectionFactory()
         self.dcreason = None
         self.init(addr, port, factory, *args, **kwargs)
+    
+    def accept(self, key, protocol=None, extensions=None, extra=None *args, **kwargs):
+        """
+        Accept a WebSocket connection.
+        
+        Here, we send a server handshake packet and set the connection's state
+        to OPEN.
+        """
+        self.state = STATE.OPEN
+        enc = hashlib.sha1()
+        enc.update(key)
+        enc.update(PADDING)
+        key = base64.b64encode(enc.digest())
+        headers = [
+            'Upgrade: WebSocket\r\n',
+            'Connection: Upgrade\r\n',
+            'Sec-WebSocket-Accept: {0}\r\n'.format(key)]
+        
+        if protocol is not None:
+            headers.append('Sec-WebSocket-Protocol: {0}\r\n'.format(protocol))
+        
+        if extensions is not None:
+            headers.append('Sec-WebSocket-Extension: {0}\r\n'.format(extensions))
+        
+        if extra is not None:
+            headers.extend(extra)
+        
+        written = self.write(SERVER_HANDSHAKE.format(''.join(headers)).encode())
+        
+        if written > -1:
+            self.state = STATE.OPEN
+            return written
+        
+        self.state = STATE.CLOSED
+        return written
 
 

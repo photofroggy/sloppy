@@ -74,31 +74,37 @@ class WebSocketServerProtocol(Protocol):
             self._factory.fail(self._transport,
                 WSHandshakeError('Client sending data without handshaking'))
             return
+        
         # Needs to be at least HTTP/1.1
         if float(request.request_version.split('/')[-1]) < 1.1:
             self._factory.fail(self._transport,
                 WSHandshakeError('Incompatible HTTP version'))
             return
+        
         # Should have headers, and we need an upgrade header.
         if not hasattr(request, 'headers') or 'upgrade' not in request.headers:
             self._factory.fail(self._transport,
                 WSHandshakeError('No header values given'))
             return
+        
         # Needs to be requesting a WebSocket connection.
         if 'websocket' not in request.headers['upgrade'].lower():
             self._factory.fail(self._transport,
                 WSHandshakeError('Invalid Upgrade header'))
             return
+        
         # Needs to be requesting a connection upgrade.
         if 'connection' not in request.headers or 'upgrade' not in request.headers['connection'].lower():
             self._factory.fail(self._transport,
                 WSHandshakeError('Invalid Connection header'))
             return
+        
         # Needs to be using WebSocket protocol version 13.
         if 'sec-websocket-version' not in request.headers or request.headers['sec-websocket-version'] != '13':
             self._factory.fail(self._transport,
                 WSHandshakeError('Incompatible WebSocket version'))
             return
+        
         # Needs to provide a key.
         if 'sec-websocket-key' not in request.headers:
             self._factory.fail(self._transport,
@@ -106,11 +112,21 @@ class WebSocketServerProtocol(Protocol):
             return
         
         # Ok, now we let the on_handshake method take over.
-        self.on_handshake(request)
+        # If None is returned then we have to sort out the handshake ourself.
+        if self.on_handshake(request) is None:
+            written = self._transport.accept(request.headers['sec-websocket-key'])
+            if written > -1:
+                self.on_open()
     
     def on_handshake(self):
         """
         Handshake received.
+        """
+        return None
+    
+    def on_open(self):
+        """
+        Connection established and handshake complete.
         """
     
 
