@@ -79,8 +79,9 @@ class Application(object):
             conn = self.conn[i]
             
             if conn[0].conn is None:
-                conn[1].connection_closed(None)
-                conn[0].closed(None)
+                dcr = conn[0].dcreason
+                conn[1].connection_closed(dcr)
+                conn[0].closed(dcr)
                 continue
             
             nconn.append( conn )
