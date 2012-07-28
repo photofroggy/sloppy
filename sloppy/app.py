@@ -148,7 +148,7 @@ class Application(object):
         
         # Cleanup!
     
-    def stopLoop(self):
+    def stop(self):
         """
         Stop the application.
         """

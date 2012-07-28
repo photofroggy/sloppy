@@ -29,10 +29,10 @@ As an example, here is a simple echo server and client. First, the client::
             return EchoProto(self)
         
         def fail(self, transport, reason):
-            self.app.stopLoop()
+            self.app.stop()
         
         def closed(self, transport, reason):
-            self.app.stopLoop()
+            self.app.stop()
         
 
     class EchoProto(sloppy.Protocol):
