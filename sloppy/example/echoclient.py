@@ -26,7 +26,7 @@ class EchoProto(sloppy.Protocol):
         print ">> hello world"
         self.c.write('hello world'.encode())
     
-    def data_received(self, data):
+    def on_data(self, data):
         print "<< " + (data.decode()).strip()
         self.c.close()
 
