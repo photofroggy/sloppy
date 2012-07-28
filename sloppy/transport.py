@@ -1,6 +1,8 @@
 ''' sloppy.transport - photofroggy
     Default transports and base.
 '''
+import socket
+import errno
 
 class Transport(object):
     """
