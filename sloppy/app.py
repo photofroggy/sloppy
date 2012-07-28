@@ -5,6 +5,7 @@
 import socket
 import select
 import errno
+from sloppy.transport import Transport
 
 
 class Application(object):
