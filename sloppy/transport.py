@@ -1,6 +1,8 @@
 ''' sloppy.transport - photofroggy
     Default transports and base.
 '''
+from sloppy.flow import ConnectionFactory
+
 
 class Transport(object):
     """
@@ -14,19 +16,26 @@ class Transport(object):
     port = None
     factory = None
     
-    def __init__(self, addr, port, *args, **kwargs):
+    def __init__(self, addr, port, factory=None, *args, **kwargs):
         """
         Create a transport.
         """
         self.addr = addr
         self.port = port
-        self.init(addr, port, *args, **kwargs)
+        self.factory = factory or ConnectionFactory
+        self.init(addr, port, factory, *args, **kwargs)
     
-    def init(self, addr, port, *args, **kwargs):
+    def init(self, addr, port, factory=None, *args, **kwargs):
         """
         Child classes should override this method to do stuff when the object
         is created.
         """
+    
+    def protocol(self):
+        """
+        Create a protocol object for the connection.
+        """
+        return self.factory.protocol()
     
     def connect(self):
         """
@@ -49,6 +58,12 @@ class Transport(object):
         Close connection.
         """
         raise NotImplementedError
+    
+    def closed(self, reason):
+        """
+        Connection has been closed and removed from the main loop.
+        """
+        raise self.factory.closed(self, reason)
     
     def read(self, bytes=0):
         """
@@ -79,6 +94,7 @@ class TCPClient(Transport):
         
         Returns `None` on success, error on failure.
         """
+        self.factory.starting()
         self.conn = None
         
         try:
@@ -88,9 +104,11 @@ class TCPClient(Transport):
             self.conn.settimeout(.5)
         except socket.error as e:
             self.conn = None
-            return e
+            self.factory.fail(self, e)
+            return False
         
-        return None
+        self.factory.connected(self)
+        return True
     
     def write(self, data):
         """
@@ -126,6 +144,8 @@ class TCPClient(Transport):
         error. If the socket has been closed, then the method returns `False`.
         Otherwise, the raw data read from the socket is returned.
         """
+        data = None
+        
         try:
             data = self.conn.recv(bytes)
         except socket.error as e:
@@ -149,19 +169,21 @@ class TCPServer(Transport):
     connections received, and passes these objects to the application loop.
     """
     
-    def __init__(self, addr, port, transport=None, *args, **kwargs):
+    def __init__(self, addr, port, factory=None, transport=None, *args, **kwargs):
         """
         Create a transport.
         """
         self.addr = addr
         self.port = port
+        self.factory = factory or ConnectionFactory
         self._transport = transport or TCPClient
-        self.init(addr, port, transport, *args, **kwargs)
+        self.init(addr, port, factory, transport, *args, **kwargs)
     
     def connect(self):
         """
         Start serving requests on the port specified when creating the object.
         """
+        self.factory.starting()
         self.conn = None
         
         try:
@@ -172,9 +194,11 @@ class TCPServer(Transport):
             self.conn.listen(5)
         except socket.error as e:
             self.conn = None
-            return e
+            self.factory.fail(self, e)
+            return False
         
-        return None
+        self.factory.connected(self)
+        return True
     
     def close(self):
         """
@@ -194,7 +218,7 @@ class TCPServer(Transport):
         transport is used for serving a port on a server.
         """
         incoming, addr = self.conn.accept()
-        transport = self._transport(addr, self.port)
+        transport = self._transport(addr, self.port, self.factory)
         transport.conn = incoming
         return transport
 
