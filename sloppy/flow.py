@@ -35,6 +35,30 @@ class ConnectionFactory(object):
         """
 
 
+class ServerFactory(ConnectionFactory):
+    """
+    A basic factory that serves connections on a port.
+    """
+    
+    def __init__(self, protocol=None, *args, **kwargs):
+        """
+        Store the protocol class to be used for connections.
+        """
+        self._protocol = protocol or Protocol
+        self.init(*args, **kwargs)
+    
+    def init(self, *args, **kwargs):
+        """
+        Child classes should override this to do stuff on instances.
+        """
+    
+    def protocol(self):
+        """
+        Return appropriate protocol object.
+        """
+        return self._protocol()
+
+
 class Protocol(object):
     
     def connected(self, transport):
