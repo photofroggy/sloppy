@@ -134,8 +134,8 @@ class Application(object):
                 # If we get here then the connection has been closed.
                 # Call related methods on objects and remove the connection from
                 # our pool.
-                conn[0].close()
-                conn[1].connection_closed( data )
+                conn[0].close(data)
+                conn[1].connection_closed(data)
                 self.cobj.pop(index)
                 self.conn.pop(index)
                 conn[0].closed(data)
