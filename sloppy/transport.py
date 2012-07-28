@@ -178,7 +178,7 @@ class TCPServer(Transport):
         """
         self.addr = addr
         self.port = port
-        self.factory = factory or ConnectionFactory
+        self.factory = factory or ConnectionFactory()
         self._transport = transport or TCPClient
         self.init(addr, port, factory, transport, *args, **kwargs)
     
