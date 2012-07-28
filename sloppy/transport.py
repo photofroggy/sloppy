@@ -4,6 +4,7 @@
 import socket
 import errno
 
+from sloppy.flow import ServerFactory
 from sloppy.flow import ConnectionFactory
 
 
@@ -25,7 +26,7 @@ class Transport(object):
         """
         self.addr = addr
         self.port = port
-        self.factory = factory or ConnectionFactory
+        self.factory = factory or ConnectionFactory()
         self.init(addr, port, factory, *args, **kwargs)
     
     def init(self, addr, port, factory=None, *args, **kwargs):
@@ -172,13 +173,13 @@ class TCPServer(Transport):
     connections received, and passes these objects to the application loop.
     """
     
-    def __init__(self, addr, port, factory=None, transport=None, *args, **kwargs):
+    def __init__(self, addr, port, factory=None, transport=None, protocol=None, *args, **kwargs):
         """
         Create a transport.
         """
         self.addr = addr
         self.port = port
-        self.factory = factory or ConnectionFactory
+        self.factory = factory or ServerFactory(protocol)
         self._transport = transport or TCPClient
         self.init(addr, port, factory, transport, *args, **kwargs)
     
