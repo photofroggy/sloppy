@@ -19,6 +19,7 @@ class Transport(object):
     addr = None
     port = None
     factory = None
+    dcreason = None
     
     def __init__(self, addr, port, factory=None, *args, **kwargs):
         """
@@ -27,6 +28,7 @@ class Transport(object):
         self.addr = addr
         self.port = port
         self.factory = factory or ConnectionFactory()
+        self.dcreason = None
         self.init(addr, port, factory, *args, **kwargs)
     
     def init(self, addr, port, factory=None, *args, **kwargs):
@@ -57,9 +59,11 @@ class Transport(object):
         """
         return 0
     
-    def close(self):
+    def close(self, reason=None):
         """
         Close connection.
+        
+        The reason for closure should be stored.
         """
         raise NotImplementedError
     
@@ -129,7 +133,7 @@ class TCPClient(Transport):
         except socket.error:
             return -1
     
-    def close(self):
+    def close(self, reason=None):
         """
         Close the connection.
         """
@@ -138,6 +142,7 @@ class TCPClient(Transport):
         except socket.error:
             pass
         self.conn = None
+        self.dcreason = reason
     
     def read(self, bytes=0):
         """
