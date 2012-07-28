@@ -47,7 +47,7 @@ class Transport(object):
         """
         Open a connection.
         
-        Returns `None` on success, error on failure.
+        Returns `True` on success, `False` on failure.
         """
         raise NotImplementedError
     
@@ -100,7 +100,7 @@ class TCPClient(Transport):
         """
         Open a connection.
         
-        Returns `None` on success, error on failure.
+        Returns `True` on success, `False` on failure.
         """
         self.factory.starting()
         self.conn = None
