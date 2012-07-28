@@ -28,10 +28,7 @@ class EchoProto(sloppy.Protocol):
 class MyApplication(sloppy.Application):
     
     def init(self, addr, port):
-        self.connect(
-            sloppy.TCPServer( addr, port ),
-            EchoServ()
-        )
+        self.connect(sloppy.TCPServer( addr, port, EchoServ()))
         print ">> Serving", addr, "on port", port
 
 if __name__ == '__main__':

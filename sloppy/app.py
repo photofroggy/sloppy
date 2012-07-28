@@ -29,39 +29,34 @@ class Application(object):
         Main application method.
         """
     
-    def connect(self, transport, factory):
+    def connect(self, transport):
         """
         Connect to a server.
         """
         if self.running:
-            self.open(transport, factory)
+            self.open(transport)
             return
         
-        self.cqueue.append([transport, factory])
+        self.cqueue.append([transport])
     
-    def open(self, sock, factory):
+    def open(self, transport):
         """
         Open a connection on a transport.
         """
-        factory.starting()
-        err = sock.connect()
-        
-        if err is not None:
-            factory.fail(sock, err)
+        if not transport.connect():
             return
         
-        factory.connected(sock)
-        protocol = factory.protocol()
-        self.conn.append([ sock, factory, protocol ])
-        self.cobj.append(sock.conn)
-        protocol.connected(sock)
+        protocol = transport.protocol()
+        self.conn.append([ transport, protocol ])
+        self.cobj.append(transport.conn)
+        protocol.connected(transport)
     
-    def accept(self, transport, factory):
+    def accept(self, transport):
         """
         Accept and serve a socket connection.
         """
-        protocol = factory.protocol()
-        self.conn.append([ transport, None, protocol ])
+        protocol = transport.protocol()
+        self.conn.append([ transport, protocol ])
         self.cobj.append(transport.conn)
         protocol.connected( transport )
     
@@ -71,7 +66,7 @@ class Application(object):
         """
         while len(self.cqueue) > 0:
             conn = self.cqueue.pop(0)
-            self.open(conn[0], conn[1])
+            self.open(conn[0])
     
     def clean_connections(self):
         """
@@ -84,11 +79,8 @@ class Application(object):
             conn = self.conn[i]
             
             if conn[0].conn is None:
-                conn[2].connection_closed( None )
-                
-                if conn[1] is not None:
-                    conn[1].closed( conn[0], None )
-                
+                conn[1].connection_closed(None)
+                conn[0].closed(None)
                 continue
             
             nconn.append( conn )
@@ -125,25 +117,22 @@ class Application(object):
                 
                 if isinstance(data, str):
                     # Received some raw data on a connection.
-                    conn[2].data_received(data)
+                    conn[1].data_received(data)
                     continue
                 
                 if isinstance(data, Transport):
                     # Something connected. Accept the connection.
-                    self.accept(data, conn[1])
+                    self.accept(data)
                     continue
                 
                 # If we get here then the connection has been closed.
                 # Call related methods on objects and remove the connection from
                 # our pool.
                 conn[0].close()
-                conn[2].connection_closed( data )
-                
-                if conn[1] is not None:
-                    conn[1].closed( conn[0], data )
-                
+                conn[1].connection_closed( data )
                 self.cobj.pop(index)
                 self.conn.pop(index)
+                conn[0].closed(data)
             
             self.clean_connections()
         

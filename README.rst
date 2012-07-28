@@ -53,10 +53,7 @@ As an example, here is a simple echo server and client. First, the client::
     class MyApplication(sloppy.Application):
         
         def init(self):
-            self.connect(
-                sloppy.TCPClient( 'localhost', 8000 ),
-                Client(self)
-            )
+            self.connect(sloppy.TCPClient('localhost', 8000, Client(self)))
 
     if __name__ == '__main__':
         app = MyApplication()
@@ -93,10 +90,7 @@ And the server::
     class MyApplication(sloppy.Application):
         
         def init(self, addr, port):
-            self.connect(
-                sloppy.TCPServer( addr, port ),
-                EchoServ()
-            )
+            self.connect(sloppy.TCPServer(addr, port, EchoServ()))
             print ">> Serving", addr, "on port", port
 
     if __name__ == '__main__':
