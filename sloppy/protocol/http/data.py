@@ -1,7 +1,5 @@
-''' sloppy.http - photofroggy
-    Implement http stuff, maybe.
-    For the moment we only have a request parsing thing.
-    Why must I hack the stdlib?
+''' sloppy.protocol.http.data - photofroggy
+    HTTP data objects.
 '''
 try:
     from BaseHTTPServer import BaseHTTPRequestHandler
