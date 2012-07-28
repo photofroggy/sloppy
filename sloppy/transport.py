@@ -1,6 +1,9 @@
 ''' sloppy.transport - photofroggy
     Default transports and base.
 '''
+import socket
+import errno
+
 from sloppy.flow import ConnectionFactory
 
 
@@ -63,7 +66,7 @@ class Transport(object):
         """
         Connection has been closed and removed from the main loop.
         """
-        raise self.factory.closed(self, reason)
+        return self.factory.closed(self, reason)
     
     def read(self, bytes=0):
         """

@@ -34,10 +34,7 @@ class EchoProto(sloppy.Protocol):
 class MyApplication(sloppy.Application):
     
     def init(self):
-        self.connect(
-            sloppy.TCPClient( 'localhost', 8000 ),
-            Client(self)
-        )
+        self.connect(sloppy.TCPClient( 'localhost', 8000, Client(self)))
 
 if __name__ == '__main__':
     app = MyApplication()
