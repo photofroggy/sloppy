@@ -182,6 +182,7 @@ class TCPServer(Transport):
         """
         Create a transport.
         """
+        self.dcreason = None
         self.addr = addr
         self.port = port
         self.factory = factory or ServerFactory(protocol)
@@ -209,7 +210,7 @@ class TCPServer(Transport):
         self.factory.connected(self)
         return True
     
-    def close(self):
+    def close(self, reason=None):
         """
         Stop serving requests.
         """
@@ -218,6 +219,7 @@ class TCPServer(Transport):
         except socket.error:
             pass
         self.conn = None
+        self.dcreason = reason
     
     def read(self, bytes=0):
         """

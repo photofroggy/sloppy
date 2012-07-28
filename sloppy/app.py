@@ -5,6 +5,7 @@
 import socket
 import select
 import errno
+from sloppy.error import ConnectionError
 from sloppy.transport import Transport
 
 
@@ -118,8 +119,12 @@ class Application(object):
                 
                 if isinstance(data, str):
                     # Received some raw data on a connection.
-                    conn[1].data_received(data)
-                    continue
+                    try:
+                        conn[1].data_received(data)
+                        continue
+                    except ConnectionError as err:
+                        # An error happened, causing us to disconnect.
+                        data = err
                 
                 if isinstance(data, Transport):
                     # Something connected. Accept the connection.
