@@ -120,7 +120,7 @@ class Application(object):
                 if isinstance(data, str):
                     # Received some raw data on a connection.
                     try:
-                        conn[1].data_received(data)
+                        conn[1].on_data(data)
                         continue
                     except ConnectionError as err:
                         # An error happened, causing us to disconnect.

@@ -10,7 +10,7 @@ class Protocol(sloppy.Protocol):
     def connected(self, transport):
         self.conn = transport
     
-    def data_received(self, data):
+    def on_data(self, data):
         print ">> Received:", data.decode()
         self.conn.write((data.decode() + " foo").encode())
 
