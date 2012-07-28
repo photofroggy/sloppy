@@ -40,7 +40,7 @@ class WebSocketServerProtocol(Protocol):
         """
         self._transport = transport
     
-    def data_received(self, data):
+    def on_data(self, data):
         """
         Called when data is received on the connection.
         """
