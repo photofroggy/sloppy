@@ -1,23 +1,13 @@
 ''' sloppy.protocol.transport - photofroggy
     WebSocket transports.
 '''
+import socket
 import base64
 import hashlib
 from sloppy.transport import TCPServer
 from sloppy.transport import TCPClient
+from sloppy.protocol.ws import STATE
 from sloppy.protocol.ws.flow import WebSocketServerFactory
-
-
-class STATE:
-    """
-    Basically an enum determining the state of a connection.
-    """
-    
-    CONNECTING = 0
-    OPEN = 1
-    TIME_WAIT = 2
-    CLOSING = 3
-    CLOSED = 4
 
 
 SERVER_HANDSHAKE = 'HTTP/1.1 101 WebSocket Accept\r\n{0}\r\n\0'
@@ -49,6 +39,27 @@ class WebSocketServer(TCPServer):
         self._transport = transport or WebSocketClient
         self.init(addr, port, factory, transport, *args, **kwargs)
     
+    def connect(self):
+        """
+        Start serving requests on the port specified when creating the object.
+        """
+        self.factory.starting()
+        self.conn = None
+        
+        try:
+            self.conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.conn.bind((socket.gethostbyname(self.addr), self.port))
+            self.conn.setblocking(0)
+            self.conn.settimeout(.5)
+            self.conn.listen(5)
+        except socket.error as e:
+            self.conn = None
+            self.factory.fail(self, e)
+            return False
+        
+        self.factory.connected(self)
+        return True
+    '''
     def read(self, bytes=0):
         """
         Accept an incoming connection.
@@ -56,10 +67,11 @@ class WebSocketServer(TCPServer):
         This method accepts connections instead of reading data, as this
         transport is used for serving a port on a server.
         """
+        print '>> accept tcp conn'
         incoming, addr = self.conn.accept()
         transport = self._transport(addr, self.port, self.factory)
         transport.conn = incoming
-        return transport
+        return transport'''
 
 
 class WebSocketClient(TCPClient):
@@ -81,7 +93,7 @@ class WebSocketClient(TCPClient):
         self.dcreason = None
         self.init(addr, port, factory, *args, **kwargs)
     
-    def accept(self, key, protocol=None, extensions=None, extra=None *args, **kwargs):
+    def accept(self, key, protocol=None, extensions=None, extra=None, *args, **kwargs):
         """
         Accept a WebSocket connection.
         
