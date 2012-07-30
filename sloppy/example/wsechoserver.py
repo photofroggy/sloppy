@@ -18,21 +18,15 @@ class EchoProtocol(WebSocketServerProtocol):
         """
         WebSocket connection opened.
         """
-        sys.stdout.write('>> connection open\n')
-        sys.stdout.flush()
+        self.log('websocket open')
     
     def on_message(self, data):
-        sys.stdout.write('>> Received:' + data.decode() + '\n')
-        sys.stdout.flush()
+        self.log('Received:', data)
         #self.conn.write((data.decode() + " foo").encode())
 
 
-class MyApplication(sloppy.Application):
-    
-    def init(self, addr, port):
-        self.connect(WebSocketServer(addr, port, protocol=EchoProtocol))
-
 if __name__ == '__main__':
-    app = MyApplication( '0.0.0.0', 8000 )
+    app = sloppy.Application()
+    app.connect(WebSocketServer('0.0.0.0', 8000, protocol=EchoProtocol))
     app.start()
 

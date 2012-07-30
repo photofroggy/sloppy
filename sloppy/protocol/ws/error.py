@@ -31,3 +31,9 @@ class WSFrameError(WSError):
     """
 
 
+class WSMessageError(WSFrameError):
+    """
+    Received a mal-formed WebSocket message.
+    """
+
+
