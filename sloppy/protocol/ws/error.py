@@ -13,10 +13,21 @@ class ERROR:
     HANDSHAKE = 1
 
 
-class WSHandshakeError(ConnectionError):
+class WSError(ConnectionError):
+    """
+    Base class for all WebSocket errors.
+    """
+
+
+class WSHandshakeError(WSError):
     """
     An error happened when trying to handshake.
     """
 
+
+class WSFrameError(WSError):
+    """
+    Received a mal-formed WebSocket frame.
+    """
 
 

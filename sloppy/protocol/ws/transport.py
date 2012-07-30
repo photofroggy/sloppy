@@ -8,6 +8,7 @@ from sloppy.transport import TCPServer
 from sloppy.transport import TCPClient
 from sloppy.protocol.ws import STATE
 from sloppy.protocol.ws.flow import WebSocketServerFactory
+from sloppy.protocol.ws.error import WSError
 
 
 SERVER_HANDSHAKE = 'HTTP/1.1 101 WebSocket Accept\r\n{0}\r\n\0'
@@ -39,6 +40,12 @@ class WebSocketServer(TCPServer):
         self._transport = transport or WebSocketClient
         self.init(addr, port, factory, transport, *args, **kwargs)
     
+    def peer(self):
+        """
+        Get peer address.
+        """
+        return self.addr
+    
     def connect(self):
         """
         Start serving requests on the port specified when creating the object.
@@ -54,11 +61,18 @@ class WebSocketServer(TCPServer):
             self.conn.listen(5)
         except socket.error as e:
             self.conn = None
+            print '>>> {0} can\'t listen.'.format(repr(self))
             self.factory.fail(self, e)
             return False
         
         self.factory.connected(self)
         return True
+    
+    def __repr__(self):
+        """
+        Return a string representation of this transport.
+        """
+        return 'websocket server {0:15}'.format(self.peer())#.center(35)
     '''
     def read(self, bytes=0):
         """
@@ -91,7 +105,46 @@ class WebSocketClient(TCPClient):
         self.state = STATE.CONNECTING
         self.factory = factory or ConnectionFactory()
         self.dcreason = None
+        self._peer = None
         self.init(addr, port, factory, *args, **kwargs)
+    
+    def peer(self):
+        """
+        Get peer address.
+        """
+        if self.conn is None:
+            return ''
+        
+        if self._peer is None:
+            try:
+                self._peer = self.conn.getpeername()[0]
+            except socket.error:
+                self._peer = None
+                return ':'
+        
+        return self._peer
+    
+    def __repr__(self):
+        """
+        Return a string representation of this transport.
+        """
+        return 'websocket client {0:15}'.format(self.peer())#.center(35)
+    
+    def close(self, reason=None):
+        """
+        Close the connection.
+        """
+        if reason is not None and isinstance(reason, WSError):
+            print '>>> {0} closed with {1}: {2}'.format(self, reason.__class__.__name__, reason.message)
+            
+        try:
+            self.conn.close()
+        except socket.error:
+            pass
+        
+        self.conn = None
+        self.dcreason = reason
+        self.state = STATE.CLOSED
     
     def accept(self, key, protocol=None, extensions=None, extra=None, *args, **kwargs):
         """
@@ -123,6 +176,7 @@ class WebSocketClient(TCPClient):
         
         if written > -1:
             self.state = STATE.OPEN
+            print '>>> {0} handshake accepted'.format(self)
             return written
         
         self.state = STATE.CLOSED

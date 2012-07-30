@@ -8,6 +8,7 @@ from sloppy.flow import ConnectionFactory
 from sloppy.protocol import http
 from sloppy.protocol.ws import STATE
 from sloppy.protocol.ws.error import WSHandshakeError
+from sloppy.protocol.ws.error import WSFrameError
 
 
 # WebSocket frame structs.
@@ -29,8 +30,19 @@ class WebSocketServerFactory(ServerFactory):
         """
         Return appropriate protocol object.
         """
-        #print self._protocol.__name__
-        return self._protocol(self)
+        return self._protocol()
+    
+    def fail(self, transport, reason=None):
+        """
+        Connection attempt failed.
+        """
+        raise reason
+    
+    def closed(self, transport, reason=None):
+        """
+        A connection was closed.
+        """
+        #print transport.conn.getpeername()
 
 
 class WebSocketServerProtocol(Protocol):
@@ -38,7 +50,7 @@ class WebSocketServerProtocol(Protocol):
     Base protocol object for WebSocket server connections.
     """
     
-    def __init__(self, factory):
+    def __init__(self):
         self._buffer = ''
         self._frame = None
         #self._factory = factory
@@ -50,6 +62,12 @@ class WebSocketServerProtocol(Protocol):
         Store the transport.
         """
         self._transport = transport
+        evt = 'connection accepted'
+        
+        if 'server' in transport.__class__.__name__.lower():
+            evt = 'listening on port {0}'.format(transport.port)
+        
+        print '>>> {0} {1}'.format(self._transport, evt)
     
     def on_data(self, data):
         """
@@ -71,6 +89,7 @@ class WebSocketServerProtocol(Protocol):
                 packet = data[0]
                 self._buffer = ''.join(data[1:])
             
+            print '>>> {0} handshake received'.format(self._transport)
             self._handshake(packet)
         else:
             frame = {}
@@ -78,6 +97,7 @@ class WebSocketServerProtocol(Protocol):
                 frame = {
                     'fin': 0,
                     'opcode': 0,
+                    'control': 0,
                     'mask': 0,
                     'hlen': 2,
                     'length': 0,
@@ -98,17 +118,33 @@ class WebSocketServerProtocol(Protocol):
                 self._frame = frame
                 return
             
-            print frame['buf']
+            buf = data
             header, payloadlen = STRUCT_BB.unpack(frame['buf'][:2])
-            print header, payloadlen
+            buf = buf[2:]
+            
+            if header & 0x70:
+                raise WSFrameError('Header using undefined bits', frame)
+            
             frame['fin'] = (header >> 7) & 1
             frame['opcode'] = header & 0xf
+            frame['control'] = frame['opcode'] & 0x8
             masked = (payloadlen >> 7) & 1
             frame['masked'] = masked
-            reserved_bits = header & 0x70
+            frame['length'] = payloadlen & 0x7f
+            
+            if not frame['masked']:
+                raise WSFrameError('Unmasked frame', frame)
+            
+            if frame['control'] and frame['length'] >= 126:
+                raise WSFrameError('Control payload too big', frame)
+            
             print frame['fin']
             print frame['opcode']
             print frame['masked']
+            print frame['length']
+            
+            # Because we don't finish yet...
+            raise WSFrameError('Not fully parsed')
     
     def _handshake(self, packet):
         """
@@ -146,14 +182,22 @@ class WebSocketServerProtocol(Protocol):
         
         # Ok, now we let the on_handshake method take over.
         # If None is returned then we have to sort out the handshake ourself.
-        if self.on_handshake(request) is None:
+        if not self.on_handshake(request):
             written = self._transport.accept(request.headers['sec-websocket-key'])
+            
             if written > -1:
                 self.on_open()
+            
+            return
+        
+        self.on_open()
     
     def on_handshake(self, request):
         """
         Handshake received.
+        
+        If writing the response from here, return True.
+        Otherwise, return None or don't return anything.
         """
         return None
     
