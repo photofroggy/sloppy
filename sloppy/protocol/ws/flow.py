@@ -56,7 +56,102 @@ class WebSocketServerFactory(ServerFactory):
         #print transport.conn.getpeername()
 
 
-class WebSocketServerProtocol(Protocol):
+class WebSocketProtocol(Protocol):
+    """
+    Implements base functionality for the WebSocket protocols.
+    """
+    
+    def log(self, *msg):
+        """
+        Display a log message.
+        """
+        if self._transport is None:
+            return
+        self._transport.log(*msg)
+    
+    def _message(self, opcode, data):
+        """
+        Handle a WebSocket message.
+        """
+        if opcode not in [0x1, 0x2, 0x8, 0x9, 0xA]:
+            raise WSMessageError('Unknown opcode {0}'.format(opcode))
+        else:
+            self.log('received message')
+        
+        if opcode == 0x1:
+            # UTF-8
+            try:
+                data = data.decode('utf8')
+            except UnicodeDecodeError as e:
+                raise WSMessageError('Couldn\'t decode; {0}'.format(e.message))
+            self.on_message(data)
+            return
+        
+        if opcode == 0x2:
+            # Binary
+            self.on_binary(data)
+            return
+        
+        if opcode == 0x8:
+            # Close
+            self.on_close()
+            self._transport.close()
+            return
+        
+        if opcode == 0x9:
+            # Ping
+            self.on_ping()
+            WSMessageError('Ping not implemented')
+            return
+        
+        if opcode == 0xA:
+            # Pong
+            self.on_pong()
+            WSMessageError('Pong not implemented')
+            return
+        
+    
+    def on_handshake(self, request):
+        """
+        Handshake received.
+        
+        If writing the response from here, return True.
+        Otherwise, return None or don't return anything.
+        """
+        return None
+    
+    def on_open(self):
+        """
+        Connection established and handshake complete.
+        """
+    
+    def on_message(self, message):
+        """
+        Message received.
+        """
+    
+    def on_binary(self, message):
+        """
+        Binary message received.
+        """
+    
+    def on_close(self, message):
+        """
+        Close frame received.
+        """
+    
+    def on_ping(self, message):
+        """
+        Ping frame received.
+        """
+    
+    def on_pong(self, message):
+        """
+        Pong frame received.
+        """
+
+
+class WebSocketServerProtocol(WebSocketProtocol):
     """
     Base protocol object for WebSocket server connections.
     """
@@ -66,14 +161,6 @@ class WebSocketServerProtocol(Protocol):
         self._buffer = ''
         self._frame = None
         #self._factory = factory
-    
-    def log(self, *msg):
-        """
-        Display a log message.
-        """
-        if self._transport is None:
-            return
-        self._transport.log(*msg)
     
     def connected(self, transport):
         """
@@ -168,15 +255,6 @@ class WebSocketServerProtocol(Protocol):
                 self._frame16(frame)
             elif frame['length'] == 127:
                 self._frame64(frame)
-            
-            '''
-            self.log('fin', frame['fin'])
-            self.log('opcode', frame['opcode'])
-            self.log('masked', frame['masked'])
-            self.log('length', frame['length'])'''
-            
-            # Because we don't finish yet...
-            #raise WSFrameError('Not fully parsed')
     
     def _handshake(self, packet):
         """
@@ -242,13 +320,17 @@ class WebSocketServerProtocol(Protocol):
         """
         Parse a 16bit WebSocket frame.
         """
-        raise WSFrameError('Not fully parsed 16bit')
+        frame['length'] = STRUCT_H.unpack(frame['buf'][:2])[0]
+        frame['buf'] = frame['buf'][2:]
+        self._unmask(frame)
     
     def _frame64(self, frame):
         """
         Parse a 64bit WebSocket frame.
         """
-        raise WSFrameError('Not fully parsed 64bit')
+        frame['length'] = STRUCT_Q.unpack(frame['buf'][:8])[0]
+        frame['buf'] = frame['buf'][8:]
+        self._unmask(frame)
     
     def _frame_data(self, frame, data):
         """
@@ -280,40 +362,6 @@ class WebSocketServerProtocol(Protocol):
             return
         
         self._frame = frame
-    
-    def _message(self, opcode, data):
-        """
-        Handle a WebSocket message.
-        """
-        if opcode == 0x1:
-            # UTF-8
-            try:
-                data = data.decode('utf8')
-            except UnicodeDecodeError as e:
-                raise WSMessageError('Couldn\'t decode; {0}'.format(e.message))
-            self.on_message(data)
-            return
-        
-        raise WSMessageError('Not fully parsed')
-    
-    def on_handshake(self, request):
-        """
-        Handshake received.
-        
-        If writing the response from here, return True.
-        Otherwise, return None or don't return anything.
-        """
-        return None
-    
-    def on_open(self):
-        """
-        Connection established and handshake complete.
-        """
-    
-    def on_message(self, message):
-        """
-        Message received.
-        """
     
 
 
